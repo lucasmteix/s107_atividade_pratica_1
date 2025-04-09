@@ -1,0 +1,60 @@
+name: CI - Calculadora
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  testes:
+    name: Executar testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+
+      - name: Rodar testes com unittest
+        run: |
+          python -m unittest discover -s tests
+
+  build:
+    name: Empacotar projeto
+    runs-on: ubuntu-latest
+    needs: testes
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Criar pacote zipado
+        run: |
+          zip -r pacote_calculadora.zip app/ tests/ README.md requirements.txt
+
+      - name: Salvar artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote-e-relatorio
+          path: |
+            pacote_calculadora.zip
+
+  notificacao:
+    name: Notificar por e-mail
+    runs-on: ubuntu-latest
+    needs: [testes, build]
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Rodar script de notificação
+        run: bash scripts/notificar.sh
+        env:
+          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
